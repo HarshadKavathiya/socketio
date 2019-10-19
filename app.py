@@ -3,6 +3,7 @@ import json
 from threading import Lock
 
 from flask import Flask, render_template, session, request
+from flask_cors import CORS
 from flask_restplus import Api, Resource
 from flask_socketio import SocketIO, Namespace, emit, join_room, leave_room, \
     close_room, rooms, disconnect
@@ -10,6 +11,7 @@ from flask_socketio import SocketIO, Namespace, emit, join_room, leave_room, \
 async_mode = None
 
 app = Flask(__name__)
+CORS(app)
 app.config['SECRET_KEY'] = 'secret!'
 api = Api(app)
 socketio = SocketIO(app, async_mode=async_mode, cors_allowed_origins="*")
