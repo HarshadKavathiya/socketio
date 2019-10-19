@@ -6,8 +6,6 @@ from flask_restplus import Api, Resource
 from flask_socketio import SocketIO, Namespace, emit, join_room, leave_room, \
     close_room, rooms, disconnect
 
-Api
-
 async_mode = None
 
 app = Flask(__name__)
