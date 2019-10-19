@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import json
 from threading import Lock
 
 from flask import Flask, render_template, session, request
@@ -18,9 +19,12 @@ thread_lock = Lock()
 
 class EventAPI(Resource):
     def get(self):
+        data = {}
+        with open('demo_event.json') as json_file:
+            data = json.load(json_file)
         payload = {"success": True,
                    "message": "success",
-                   "data": {}}
+                   "data": data}
         return payload, 200
 
 
