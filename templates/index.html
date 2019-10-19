@@ -1,0 +1,141 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Diamond Event Demo</title>
+    <script crossorigin="anonymous"
+            integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
+            src="//code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script crossorigin="anonymous"
+            integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I="
+            src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+    <script charset="utf-8" type="text/javascript">
+        $(document).ready(function () {
+            // Use a "/socket" namespace.
+            // An application can open a connection on multiple namespaces, and
+            // Socket.IO will multiplex all those connections on a single
+            // physical channel. If you don't care about multiple channels, you
+            // can set the namespace to an empty string.
+            namespace = '/socket';
+
+            // Connect to the Socket.IO server.
+            // The connection URL has the following format, relative to the current page:
+            //     http[s]://<domain>:<port>[/<namespace>]
+            var socket = io(namespace);
+
+            // Event handler for new connections.
+            // The callback function is invoked when a connection with the
+            // server is established.
+            socket.on('connect', function () {
+                socket.emit('my_event', {data: 'I\'m connected!'});
+            });
+
+            // Event handler for server sent data.
+            // The callback function is invoked whenever the server emits data
+            // to the client. The data is then displayed in the "Received"
+            // section of the page.
+            socket.on('my_response', function (msg, cb) {
+                $('#log').append('<br>' + $('<div/>').text('Received #' + msg.count + ': ' + msg.data).html());
+                if (cb)
+                    cb();
+            });
+
+            // Interval function that tests message latency by sending a "ping"
+            // message. The server then responds with a "pong" message and the
+            // round trip time is measured.
+            var ping_pong_times = [];
+            var start_time;
+            window.setInterval(function () {
+                start_time = (new Date).getTime();
+                socket.emit('my_ping');
+            }, 1000);
+
+            // Handler for the "pong" message. When the pong is received, the
+            // time from the ping is stored, and the average of the last 30
+            // samples is average and displayed.
+            socket.on('my_pong', function () {
+                var latency = (new Date).getTime() - start_time;
+                ping_pong_times.push(latency);
+                ping_pong_times = ping_pong_times.slice(-30); // keep last 30 samples
+                var sum = 0;
+                for (var i = 0; i < ping_pong_times.length; i++)
+                    sum += ping_pong_times[i];
+                $('#ping-pong').text(Math.round(10 * sum / ping_pong_times.length) / 10);
+            });
+
+            // Handlers for the different forms in the page.
+            // These accept data from the user and send it to the server in a
+            // variety of ways
+            $('form#emit').submit(function (event) {
+                socket.emit('my_event', {data: $('#emit_data').val()});
+                return false;
+            });
+            $('form#broadcast').submit(function (event) {
+                socket.emit('my_broadcast_event', {data: $('#broadcast_data').val()});
+                return false;
+            });
+            $('form#join').submit(function (event) {
+                socket.emit('join', {room: $('#join_room').val()});
+                return false;
+            });
+            $('form#leave').submit(function (event) {
+                socket.emit('leave', {room: $('#leave_room').val()});
+                return false;
+            });
+            $('form#send_room').submit(function (event) {
+                socket.emit('my_room_event', {
+                    room: $('#room_name').val(),
+                    data: $('#room_data').val()
+                });
+                return false;
+            });
+            $('form#close').submit(function (event) {
+                socket.emit('close_room', {room: $('#close_room').val()});
+                return false;
+            });
+            $('form#disconnect').submit(function (event) {
+                socket.emit('disconnect_request');
+                return false;
+            });
+        });
+    </script>
+</head>
+<body>
+<h1>Diamond Event</h1>
+<p>Async mode is: <b>{{ async_mode }}</b></p>
+<p>Average ping/pong latency: <b><span id="ping-pong"></span>ms</b></p>
+<h2>Send:</h2>
+<form action='#' id="emit" method="POST">
+    <input id="emit_data" name="emit_data" placeholder="Message" type="text">
+    <input type="submit" value="Echo">
+</form>
+<form action='#' id="broadcast" method="POST">
+    <input id="broadcast_data" name="broadcast_data" placeholder="Message"
+           type="text">
+    <input type="submit" value="Broadcast">
+</form>
+<form action='#' id="join" method="POST">
+    <input id="join_room" name="join_room" placeholder="Room Name" type="text">
+    <input type="submit" value="Join Room">
+</form>
+<form action='#' id="leave" method="POST">
+    <input id="leave_room" name="leave_room" placeholder="Room Name"
+           type="text">
+    <input type="submit" value="Leave Room">
+</form>
+<form action='#' id="send_room" method="POST">
+    <input id="room_name" name="room_name" placeholder="Room Name" type="text">
+    <input id="room_data" name="room_data" placeholder="Message" type="text">
+    <input type="submit" value="Send to Room">
+</form>
+<form action="#" id="close" method="POST">
+    <input id="close_room" name="close_room" placeholder="Room Name"
+           type="text">
+    <input type="submit" value="Close Room">
+</form>
+<form action="#" id="disconnect" method="POST">
+    <input type="submit" value="Disconnect">
+</form>
+<h2>Receive:</h2>
+<div id="log"></div>
+</body>
+</html>
